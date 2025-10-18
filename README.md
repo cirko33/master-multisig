@@ -24,6 +24,111 @@ A secure, decentralized multisignature wallet implementation on Solana blockchai
    - `approve_transaction`: Collect signer approvals
    - `execute_transaction`: Execute approved transactions
 
+```mermaid
+graph TB
+    %% Client Layer
+    subgraph "Client Layer"
+        Client[Client Application]
+        TestSuite[Test Suite<br/>TypeScript]
+        Provider[Anchor Provider]
+    end
+
+    %% Solana Network
+    subgraph "Solana Network"
+        RPC[RPC Endpoint]
+        Validators[Solana Validators]
+    end
+
+    %% Program Layer
+    subgraph "Multisig Wallet Program"
+        ProgramID[Program ID:<br/>BVp4CE4SE5hcLFg8ybWSYak1xdHUGTpYTGYcmEoFhAx1]
+        
+        subgraph "Core Instructions"
+            InitWallet[Initialize Wallet]
+            ProposeTx[Propose Transaction]
+            ApproveTx[Approve Transaction]
+            ExecuteTx[Execute Transaction]
+        end
+        
+        subgraph "Data Structures"
+            WalletAccount[Wallet Account<br/>- signers: Vec&lt;Pubkey&gt;<br/>- quorum: u8<br/>- tx_counter: u64]
+            TransactionAccount[Transaction Account<br/>- to: Pubkey<br/>- lamports: u64<br/>- signed: Vec&lt;Pubkey&gt;<br/>- wallet: Pubkey]
+        end
+        
+        subgraph "Error Handling"
+            Errors[MultisigError Enum<br/>- TooManySigners<br/>- InvalidQuorum<br/>- NotSigner<br/>- AlreadyApproved<br/>- AlreadyExecuted<br/>- NotEnoughSigners<br/>- WrongWallet<br/>- NotEnoughLamports<br/>- InvalidReceiver<br/>- InvalidProposer]
+        end
+    end
+
+    %% Account Management
+    subgraph "Account Management"
+        PDAs[Program Derived Addresses]
+        Seeds[Seeds:<br/>- wallet: hashsigners<br/>- transaction: wallet + counter]
+        Constraints[Account Constraints<br/>- Signer validation<br/>- Quorum checks<br/>- Lamport validation]
+    end
+
+    %% External Systems
+    subgraph "External Systems"
+        SystemProgram[Solana System Program]
+        Keypairs[User Keypairs<br/>- Signers<br/>- Proposers<br/>- Recipients]
+    end
+
+    %% Workflow
+    subgraph "Transaction Workflow"
+        Step1[1. Initialize Wallet<br/>Set signers & quorum]
+        Step2[2. Propose Transaction<br/>Create transaction proposal]
+        Step3[3. Approve Transaction<br/>Collect signatures]
+        Step4[4. Execute Transaction<br/>Transfer lamports]
+    end
+
+    %% Connections
+    Client --> Provider
+    Provider --> RPC
+    RPC --> Validators
+    Validators --> ProgramID
+    
+    ProgramID --> InitWallet
+    ProgramID --> ProposeTx
+    ProgramID --> ApproveTx
+    ProgramID --> ExecuteTx
+    
+    InitWallet --> WalletAccount
+    ProposeTx --> TransactionAccount
+    ApproveTx --> TransactionAccount
+    ExecuteTx --> TransactionAccount
+    
+    WalletAccount --> PDAs
+    TransactionAccount --> PDAs
+    PDAs --> Seeds
+    PDAs --> Constraints
+    
+    InitWallet --> Errors
+    ProposeTx --> Errors
+    ApproveTx --> Errors
+    ExecuteTx --> Errors
+    
+    ExecuteTx --> SystemProgram
+    SystemProgram --> Keypairs
+    
+    Step1 --> Step2
+    Step2 --> Step3
+    Step3 --> Step4
+    
+    TestSuite --> Client
+    TestSuite --> Provider
+
+    %% Styling
+    classDef programClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef accountClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef clientClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef workflowClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    
+    class ProgramID,InitWallet,ProposeTx,ApproveTx,ExecuteTx programClass
+    class WalletAccount,TransactionAccount,PDAs accountClass
+    class Client,TestSuite,Provider clientClass
+    class Step1,Step2,Step3,Step4 workflowClass
+```
+
 ### Program ID
 ```
 BVp4CE4SE5hcLFg8ybWSYak1xdHUGTpYTGYcmEoFhAx1
@@ -268,110 +373,4 @@ multisig-wallet/
 ├── Anchor.toml                        # Anchor configuration
 ├── Cargo.toml                         # Rust dependencies
 └── package.json                       # Node.js dependencies
-```
-
-## Project architecture
-```mermaid
-graph TB
-    %% Client Layer
-    subgraph "Client Layer"
-        Client[Client Application]
-        TestSuite[Test Suite<br/>TypeScript]
-        Provider[Anchor Provider]
-    end
-
-    %% Solana Network
-    subgraph "Solana Network"
-        RPC[RPC Endpoint]
-        Validators[Solana Validators]
-    end
-
-    %% Program Layer
-    subgraph "Multisig Wallet Program"
-        ProgramID[Program ID:<br/>BVp4CE4SE5hcLFg8ybWSYak1xdHUGTpYTGYcmEoFhAx1]
-        
-        subgraph "Core Instructions"
-            InitWallet[Initialize Wallet]
-            ProposeTx[Propose Transaction]
-            ApproveTx[Approve Transaction]
-            ExecuteTx[Execute Transaction]
-        end
-        
-        subgraph "Data Structures"
-            WalletAccount[Wallet Account<br/>- signers: Vec&lt;Pubkey&gt;<br/>- quorum: u8<br/>- tx_counter: u64]
-            TransactionAccount[Transaction Account<br/>- to: Pubkey<br/>- lamports: u64<br/>- signed: Vec&lt;Pubkey&gt;<br/>- wallet: Pubkey]
-        end
-        
-        subgraph "Error Handling"
-            Errors[MultisigError Enum<br/>- TooManySigners<br/>- InvalidQuorum<br/>- NotSigner<br/>- AlreadyApproved<br/>- AlreadyExecuted<br/>- NotEnoughSigners<br/>- WrongWallet<br/>- NotEnoughLamports<br/>- InvalidReceiver<br/>- InvalidProposer]
-        end
-    end
-
-    %% Account Management
-    subgraph "Account Management"
-        PDAs[Program Derived Addresses]
-        Seeds[Seeds:<br/>- wallet: hashsigners<br/>- transaction: wallet + counter]
-        Constraints[Account Constraints<br/>- Signer validation<br/>- Quorum checks<br/>- Lamport validation]
-    end
-
-    %% External Systems
-    subgraph "External Systems"
-        SystemProgram[Solana System Program]
-        Keypairs[User Keypairs<br/>- Signers<br/>- Proposers<br/>- Recipients]
-    end
-
-    %% Workflow
-    subgraph "Transaction Workflow"
-        Step1[1. Initialize Wallet<br/>Set signers & quorum]
-        Step2[2. Propose Transaction<br/>Create transaction proposal]
-        Step3[3. Approve Transaction<br/>Collect signatures]
-        Step4[4. Execute Transaction<br/>Transfer lamports]
-    end
-
-    %% Connections
-    Client --> Provider
-    Provider --> RPC
-    RPC --> Validators
-    Validators --> ProgramID
-    
-    ProgramID --> InitWallet
-    ProgramID --> ProposeTx
-    ProgramID --> ApproveTx
-    ProgramID --> ExecuteTx
-    
-    InitWallet --> WalletAccount
-    ProposeTx --> TransactionAccount
-    ApproveTx --> TransactionAccount
-    ExecuteTx --> TransactionAccount
-    
-    WalletAccount --> PDAs
-    TransactionAccount --> PDAs
-    PDAs --> Seeds
-    PDAs --> Constraints
-    
-    InitWallet --> Errors
-    ProposeTx --> Errors
-    ApproveTx --> Errors
-    ExecuteTx --> Errors
-    
-    ExecuteTx --> SystemProgram
-    SystemProgram --> Keypairs
-    
-    Step1 --> Step2
-    Step2 --> Step3
-    Step3 --> Step4
-    
-    TestSuite --> Client
-    TestSuite --> Provider
-
-    %% Styling
-    classDef programClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef accountClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef clientClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef workflowClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    
-    class ProgramID,InitWallet,ProposeTx,ApproveTx,ExecuteTx programClass
-    class WalletAccount,TransactionAccount,PDAs accountClass
-    class Client,TestSuite,Provider clientClass
-    class Step1,Step2,Step3,Step4 workflowClass
 ```
